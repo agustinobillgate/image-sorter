@@ -288,3 +288,5 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = ImageSorter(root)
     root.mainloop()
+
+# pyinstaller --onefile --noconsole --name ImageSorter image_sorter.py --icon=cross.ico
