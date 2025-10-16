@@ -19,6 +19,8 @@ class ImageSorter:
     self.good_folder = ""
     self.best_folder = ""
     self.undo_stack = []
+    self.current_sort = "name"
+    self.sort_ascending = True
     self.setup_ui()
     self.root.update_idletasks()
 
@@ -27,6 +29,18 @@ class ImageSorter:
     top_frame.pack(fill=tk.X)
     select_btn = tk.Button(top_frame, text="Select Folder", command=self.select_folder, font=("Arial", 10), padx=20, pady=5, bg="white", fg="black", highlightbackground="white", highlightthickness=2)
     select_btn.pack()
+    sort_control_frame = tk.Frame(self.root, pady=10, bg="black")
+    sort_control_frame.pack()
+    self.sort_name_btn = tk.Button(sort_control_frame, text="Name", command=lambda: self.sort_images("name"), font=("Arial", 10), padx=20, pady=5, state=tk.DISABLED, bg="white", fg="black", highlightbackground="white", highlightthickness=2)
+    self.sort_name_btn.grid(row=0, column=1, padx=10)
+    self.sort_type_btn = tk.Button(sort_control_frame, text="Type", command=lambda: self.sort_images("type"), font=("Arial", 10), padx=20, pady=5, state=tk.DISABLED, bg="white", fg="black", highlightbackground="white", highlightthickness=2)
+    self.sort_type_btn.grid(row=0, column=2, padx=10)
+    self.sort_date_btn = tk.Button(sort_control_frame, text="Date", command=lambda: self.sort_images("date"), font=("Arial", 10), padx=20, pady=5, state=tk.DISABLED, bg="white", fg="black", highlightbackground="white", highlightthickness=2)
+    self.sort_date_btn.grid(row=0, column=3, padx=10)
+    self.sort_asc_btn = tk.Button(sort_control_frame, text="↑ Asc", command=lambda: self.set_sort_order(True), font=("Arial", 10), padx=20, pady=5, state=tk.DISABLED, bg="lightgray", fg="black", highlightbackground="white", highlightthickness=2)
+    self.sort_asc_btn.grid(row=0, column=5, padx=10)
+    self.sort_desc_btn = tk.Button(sort_control_frame, text="Dsc ↓", command=lambda: self.set_sort_order(False), font=("Arial", 10), padx=20, pady=5, state=tk.DISABLED, bg="white", fg="black", highlightbackground="white", highlightthickness=2)
+    self.sort_desc_btn.grid(row=0, column=6, padx=10)
     self.counter_label = tk.Label(self.root, text="0", font=("Arial", 10), pady=5, bg="black", fg="white")
     self.counter_label.pack()
     self.filename_label = tk.Label(self.root, text="", font=("Arial", 10), pady=5, bg="black", fg="white")
@@ -81,7 +95,7 @@ class ImageSorter:
       messagebox.showwarning("No Images", "No supported images found in the selected folder!")
       return
 
-    self.image_files.sort()
+    self.apply_current_sort()
     self.current_index = 0
     self.undo_stack = []
     self.poor_folder = os.path.join(self.source_folder, "poor")
@@ -95,7 +109,64 @@ class ImageSorter:
     self.poor_btn.config(state=tk.NORMAL)
     self.good_btn.config(state=tk.NORMAL)
     self.best_btn.config(state=tk.NORMAL)
+    self.sort_name_btn.config(state=tk.NORMAL)
+    self.sort_type_btn.config(state=tk.NORMAL)
+    self.sort_date_btn.config(state=tk.NORMAL)
+    self.sort_asc_btn.config(state=tk.NORMAL)
+    self.sort_desc_btn.config(state=tk.NORMAL)
+    self.update_sort_button_highlight()
     self.display_image()
+
+  def sort_images(self, sort_by):
+    if not self.image_files:
+      return
+    
+    self.current_sort = sort_by
+    self.apply_current_sort()
+    self.current_index = 0
+    self.update_sort_button_highlight()
+    self.display_image()
+
+  def set_sort_order(self, ascending):
+    if not self.image_files:
+      return
+    
+    self.sort_ascending = ascending
+    self.apply_current_sort()
+    self.current_index = 0
+    self.update_sort_order_buttons()
+    self.display_image()
+
+  def apply_current_sort(self):
+    if self.current_sort == "name":
+      self.image_files.sort(reverse=not self.sort_ascending)
+    elif self.current_sort == "type":
+      self.image_files.sort(key=lambda x: (os.path.splitext(x)[1].lower(), x.lower()), reverse=not self.sort_ascending)
+    elif self.current_sort == "date":
+      self.image_files.sort(key=lambda x: os.path.getmtime(os.path.join(self.source_folder, x)), reverse=not self.sort_ascending)
+
+  def update_sort_button_highlight(self):
+    # Reset all sort buttons
+    self.sort_name_btn.config(bg="white", highlightbackground="white")
+    self.sort_type_btn.config(bg="white", highlightbackground="white")
+    self.sort_date_btn.config(bg="white", highlightbackground="white")
+    
+    if self.current_sort == "name":
+      self.sort_name_btn.config(bg="lightgray", highlightbackground="lightgray")
+    elif self.current_sort == "type":
+      self.sort_type_btn.config(bg="lightgray", highlightbackground="lightgray")
+    elif self.current_sort == "date":
+      self.sort_date_btn.config(bg="lightgray", highlightbackground="lightgray")
+    
+    self.update_sort_order_buttons()
+
+  def update_sort_order_buttons(self):
+    if self.sort_ascending:
+      self.sort_asc_btn.config(bg="lightgray", highlightbackground="lightgray")
+      self.sort_desc_btn.config(bg="white", highlightbackground="white")
+    else:
+      self.sort_asc_btn.config(bg="white", highlightbackground="white")
+      self.sort_desc_btn.config(bg="lightgray", highlightbackground="lightgray")
 
   def display_image(self):
     if not self.image_files:
@@ -207,6 +278,11 @@ class ImageSorter:
     self.poor_btn.config(state=tk.DISABLED)
     self.good_btn.config(state=tk.DISABLED)
     self.best_btn.config(state=tk.DISABLED)
+    self.sort_name_btn.config(state=tk.DISABLED)
+    self.sort_type_btn.config(state=tk.DISABLED)
+    self.sort_date_btn.config(state=tk.DISABLED)
+    self.sort_asc_btn.config(state=tk.DISABLED)
+    self.sort_desc_btn.config(state=tk.DISABLED)
 
 if __name__ == "__main__":
     root = tk.Tk()
